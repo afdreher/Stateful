@@ -72,4 +72,29 @@ class aTests: XCTestCase {
         stateMachine.process(event: .e1)
         XCTAssertEqual(stateMachine.currentState, .idle)
     }
+
+  func test_GuardedTransistions() {
+      stateMachine.process(event: .e1)
+      XCTAssertEqual(stateMachine.currentState, .idle)
+
+      var shouldGoToIdle = true
+
+      let transition1 = TransitionDefault(with: .e1, from: .idle, to: .started)
+      stateMachine.add(transition: transition1)
+      let transition2 = TransitionDefault(with: .e2, from: .started, to: .idle, guardBlock: { return shouldGoToIdle })
+      stateMachine.add(transition: transition2)
+      let transition3 = TransitionDefault(with: .e2, from: .started, to: .running)
+      stateMachine.add(transition: transition3)
+
+      stateMachine.process(event: .e1)
+      XCTAssertEqual(stateMachine.currentState, .started)
+      stateMachine.process(event: .e2)
+      XCTAssertEqual(stateMachine.currentState, .idle)
+      stateMachine.process(event: .e1)
+      XCTAssertEqual(stateMachine.currentState, .started)
+
+      shouldGoToIdle = false
+      stateMachine.process(event: .e2)
+      XCTAssertEqual(stateMachine.currentState, .running)
+  }
 }

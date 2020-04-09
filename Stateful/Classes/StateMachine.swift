@@ -35,7 +35,7 @@ open class StateMachine<State: Hashable, Event: Hashable> {
     public func add(transition: Transition<State, Event>) {
         lockQueue.sync {
             if let transitions = self.transitionsByEvent[transition.event] {
-                if (transitions.filter { return $0.source == transition.source }.count > 0) {
+                if (transitions.filter { return $0.source == transition.source && transition.guardBlock != nil}.count > 0) {
                     assertionFailure("Transition with event '\(transition.event)' and source '\(transition.source)' already existing.")
                 }
                 self.transitionsByEvent[transition.event]?.append(transition)
@@ -60,11 +60,23 @@ open class StateMachine<State: Hashable, Event: Hashable> {
                 }
                 return
             }
-            
-            assert(performableTransitions.count == 1, "Found multiple transitions with event '\(event)' and source '\(self.internalCurrentState)'.")
-            
-            let transition = performableTransitions.first!
-            
+
+            // Check the guards
+            var performableTransition: Transition<State, Event>?
+            for transition in performableTransitions {
+                if transition.guardBlock == nil || transition.guardBlock!() {
+                    performableTransition = transition
+                    break
+                }
+            }
+
+            guard let transition = performableTransition else {
+                self.callbackQueue.async {
+                    callback?(.failure)
+                }
+                return
+            }
+
             self.log(message: "Processing event '\(event)' from '\(self.internalCurrentState)'")
             self.callbackQueue.async {
                 transition.executePreBlock()
