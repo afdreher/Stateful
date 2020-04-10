@@ -35,7 +35,7 @@ open class StateMachine<State: Hashable, Event: Hashable> {
     public func add(transition: Transition<State, Event>) {
         lockQueue.sync {
             if let transitions = self.transitionsByEvent[transition.event] {
-                if (transitions.filter { return $0.source == transition.source && transition.guardBlock != nil}.count > 0) {
+                if (transitions.filter { return $0.source == transition.source && $0.guardBlock == nil}.count > 0) {
                     assertionFailure("Transition with event '\(transition.event)' and source '\(transition.source)' already existing.")
                 }
                 self.transitionsByEvent[transition.event]?.append(transition)
