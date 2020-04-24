@@ -97,4 +97,28 @@ class aTests: XCTestCase {
       stateMachine.process(event: .e2)
       XCTAssertEqual(stateMachine.currentState, .running)
   }
+
+
+  func test_ActionCallbacks() {
+    let expectation1 = XCTestExpectation(description: #function)
+    let expectation2 = XCTestExpectation(description: #function)
+
+    let action1 = ActionCallback<StateType>(state: .started,
+                                            execution: { expectation1.fulfill() },
+                                            action: .entry)
+    let action2 = ActionCallback<StateType>(state: .started,
+                                            execution: { expectation2.fulfill() },
+                                            action: .exit)
+    stateMachine.add(callback: action1)
+    stateMachine.add(callback: action2)
+    let transition1 = TransitionDefault(with: .e1, from: .idle, to: .started)
+    let transition2 = TransitionDefault(with: .e1, from: .started, to: .idle)
+    stateMachine.add(transition: transition1)
+    stateMachine.add(transition: transition2)
+
+    stateMachine.process(event: .e1)
+    wait(for: [expectation1], timeout: 2)
+    stateMachine.process(event: .e1)
+    wait(for: [expectation2], timeout: 2)
+  }
 }
